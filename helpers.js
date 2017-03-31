@@ -1,108 +1,56 @@
-var vsprintf = require('sprintf-js').vsprintf;
-var chalk = require('chalk');
+var xmlFormatter = require('xml-formatter');
+var xmlJs = require('xml-js');
 var fs = require('fs');
+var vscode = require('vscode');
 
-var outputtedFiles = [];
+var writeFile = function (path, json) {
+	var xml = xmlJs.json2xml(json, { spaces: 0 });
+	xml = xmlFormatter(xml);
+	fs.writeFileSync(path, xml);
+}
 
-var convertComponentNameToSelector = function(componentName) {
-	var i = 0;
-	var character = '';
-	var selector = '';
-
-	while (i < componentName.length) {
-		character = componentName.charAt(i);
-		if(i > 0 && character == character.toUpperCase()) {
-			selector += '-';
-			selector += character.toLowerCase();
+var findManifestFile = function (path, manifestFilename) {
+	var files = fs.readdirSync(path);
+	var foundPath;
+	for (let i = 0; i < files.length; i++) {
+		if (foundPath !== undefined) {
+			return foundPath;
+		}
+		if (fs.statSync(path + '/' + files[i]).isDirectory()) {
+			foundPath = findManifestFile(path + '/' + files[i], manifestFilename);
 		} else {
-			if(i == 0) {
-				selector += character.toLowerCase();
-			} else {
-				selector += character;
+			if (files[i] === manifestFilename) {
+				return path + '/' + files[i];
 			}
 		}
-		i++;
 	}
+}
 
-	return selector;
-};
+var updateManifestVersion = function (path, version, elementNames, attributeName) {
+	var fd = fs.openSync(path, 'r+');
+	var xml = fs.readFileSync(path, 'utf-8');
+	var json = JSON.parse(xmlJs.xml2json(xml, { compact: false, trim: false, spaces: 0 }));
+	var jsonObjectFound = findJsonObject(json, elementNames);
+	jsonObjectFound['attributes'][attributeName] = version;
+	writeFile(path, json);
+	fs.closeSync(fd);
+}
 
-var formatComponentData = function(boilerplate, injectService, compName, selectorName, destDir) {
-	var output = boilerplate;
+var findJsonObject = function (jsonNode, elementNames) {
 
-	if(injectService) {
-		output = vsprintf(
-			output, [compName, selectorName, selectorName, selectorName, selectorName, compName + 'Service', compName]);
-		console.log(chalk.bold.cyan('##### COMPONENT [with service injected]\r\n'));
-	} else {
-		output = vsprintf(output, [selectorName, destDir, selectorName, destDir, selectorName, compName]);
-		console.log(chalk.bold.cyan('##### COMPONENT\r\n'));
+	for (let i = 0; jsonNode.hasOwnProperty('elements') && i < jsonNode.elements.length; i++) {
+		for (let j = 0; j < elementNames.length; j++) {
+			if (jsonNode.hasOwnProperty('elements') && jsonNode.elements[i].name === elementNames[j]) {
+				jsonNode = findJsonObject(jsonNode.elements[i], elementNames.slice(1));
+			}
+		}
 	}
-	
-	console.log(chalk.bold.yellow(output + '\n'));
-	return output;
-};
-
-var formatComponentSpec = function(boilerplate, compName, selectorName) {
-	var output = boilerplate;
-	output = vsprintf(output, [compName, selectorName + '.component', compName, compName]);
-
-	console.log(chalk.bold.cyan('##### SPEC\r\n'));
-	console.log(chalk.bold.yellow(output + '\n'));
-	return output;
-};
-
-var formatComponentService = function(boilerplate, compName, selectorName) {
-	var output = boilerplate;
-	output = vsprintf(output, [compName, './' + selectorName, compName, compName]);
-
-	console.log(chalk.bold.cyan('##### SERVICE\r\n'));
-	console.log(chalk.bold.yellow(output + '\n'));
-	return output;
-};
-
-var formatComponentTemplate = function(boilerplate, selectorName) {
-	var output = boilerplate;
-	output = vsprintf(output, [selectorName]);
-
-	console.log(chalk.bold.cyan('##### TEMPLATE HTML\r\n'));
-	console.log(chalk.bold.yellow(output + '\n'));
-	return output;
-};
-
-var createOutputDir = function(destDir) {
-	try {
-		fs.mkdir(destDir);
-	}
-	catch(err) {
-		chalk.bold.red(err);
-	}
-};
-
-var outputFile = function(destDir, data, filename) {
-	try {
-		fs.writeFileSync(destDir + '/' + filename, data, 'utf8');
-		outputtedFiles.push(filename);
-	} catch (err) {
-		chalk.bold.red(err);
-	}
-};
-
-var displaySummary = function(destDir) {
-	console.log(chalk.bold.cyan('[CREATE COMPONENT]\r\n\r\n' + destDir));
-	for(var i = 0; i < outputtedFiles.length; i++) {
-		console.log(chalk.bold.yellow((i == outputtedFiles.length - 1 ? '  └── ' : '  ├── ')) + chalk.bold.green(outputtedFiles[i]));
-	}
-	console.log('\r\n');
-};
+	return jsonNode;
+}
 
 module.exports = {
-	convertComponentNameToSelector: convertComponentNameToSelector,
-	formatComponentData: formatComponentData,
-	formatComponentSpec: formatComponentSpec,
-	formatComponentService: formatComponentService,
-	formatComponentTemplate: formatComponentTemplate,
-	createOutputDir: createOutputDir,
-	outputFile: outputFile,
-	displaySummary: displaySummary
+	writeFile: writeFile,
+	findManifestFile: findManifestFile,
+	updateManifestVersion: updateManifestVersion,
+	findJsonObject: findJsonObject
 };

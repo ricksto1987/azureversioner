@@ -12,13 +12,13 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.getVersionNumbers"
+        "onCommand:extension.changeVersionNumbers"
     ],
     "main": "./extension",
     "contributes": {
         "commands": [
             {
-                "command": "extension.getVersionNumbers",
+                "command": "extension.changeVersionNumbers",
                 "title": "Change Version Numbers",
                 "icon": {
                     "light": "./images/genIcon.png",
@@ -30,7 +30,7 @@
             "explorer/context": [
                 {
                     "when": "resourceLangId == javascript",
-                    "command": "extension.getVersionNumbers",
+                    "command": "extension.changeVersionNumbers",
                     "group": "navigation"
                 }
             ]
