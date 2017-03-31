@@ -1,0 +1,49 @@
+{
+    "name": "azureserviceversioner",
+    "displayName": "Azure Service Versioner",
+    "description": "Provides quick search and replace of Application Type and Service Versions",
+    "icon": "images/AzureServiceVersioner_128.png",
+    "version": "0.0.1",
+    "publisher": "rocktone",
+    "engines": {
+        "vscode": "^1.0.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onCommand:extension.getVersionNumbers"
+    ],
+    "main": "./extension",
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.getVersionNumbers",
+                "title": "Change Version Numbers",
+                "icon": {
+                    "light": "./images/genIcon.png",
+                    "dark": "./images/genIcon_inverse.png"
+                }
+            }
+        ],
+        "menus": {
+            "explorer/context": [
+                {
+                    "when": "resourceLangId == javascript",
+                    "command": "extension.getVersionNumbers",
+                    "group": "navigation"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "devDependencies": {
+        "vscode": "^1.0.0"
+    },
+    "dependencies": {
+        "xml-formatter": "^1.0.1",
+        "xml-js": "1.0.2"
+    }
+}
